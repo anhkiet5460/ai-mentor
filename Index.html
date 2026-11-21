@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>C++ AI Mentor — Trợ lý Nhận xét Code</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Marked.js (Render Markdown) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Mammoth.js (Đọc file .docx) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <!-- Highlight.js (Tô màu code) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+    /* Style cho kết quả Markdown */
+    .prose h2 { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-top: 1.25rem; margin-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
+    .prose h3 { font-size: 1rem; font-weight: 600; color: #334155; margin-top: 1rem; margin-bottom: 0.35rem; }
+    .prose p { margin-bottom: 0.6rem; color: #334155; line-height: 1.6; }
+    .prose ul, .prose ol { margin-left: 1.25rem; margin-bottom: 0.75rem; color: #334155; }
+    .prose ul { list-style-type: disc; }
+    .prose ol { list-style-type: decimal; }
+    .prose li { margin-bottom: 0.3rem; }
+    .prose pre { background: #0f172a; color: #e2e8f0; padding: 0.85rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.75rem 0; font-size: 0.85rem; }
+    .prose code:not(pre code) { background: #f1f5f9; color: #4338ca; padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-size: 0.85em; font-family: 'JetBrains Mono', monospace; }
+    .prose strong { color: #0f172a; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
+
+  <!-- MODAL NHẬP API KEY (BẮT BUỘC) -->
+  <div id="apiKeyModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg">🔑</div>
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Cấu hình Gemini API Key</h2>
+          <p class="text-xs text-slate-500">Key được lưu cục bộ trên trình duyệt của bạn.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Gemini API Key cá nhân</label>
+          <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono-code" />
+          <p class="text-xs text-slate-500 mt-1.5">
+            Chưa có key? Lấy miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 hover:underline font-medium">Google AI Studio ↗</a>
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Chọn Model AI</label>
+          <select id="modelSelect" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="gemini-2.5-flash">gemini-2.5-flash (Nhanh, tối ưu chấm bài)</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro (Phân tích thuật toán khó sâu hơn)</option>
+          </select>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button id="saveApiKeyBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition cursor-pointer">
+            Lưu & Bắt đầu sử dụng
+          </button>
+          <button id="closeModalBtn" class="hidden px-4 py-2.5 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-lg text-sm transition cursor-pointer">
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR ĐIỀU HƯỚNG -->
+  <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
+    <div class="p-5 border-b border-slate-200">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">C++</div>
+        <div>
+          <h1 class="font-bold text-slate-900 text-sm leading-tight">C++ AI Mentor</h1>
+          <span class="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Dành cho Giáo viên</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+      <button onclick="switchTab('review')" id="nav-review" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 transition cursor-pointer">
+        <span>📝 Xem & Nhận xét Code</span>
+        <span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-semibold">Sẵn sàng</span>
+      </button>
+
+      <div class="pt-3 pb-1 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Đang nghiên cứu</div>
+
+      <button onclick="switchTab('theory')" id="nav-theory" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+        <span>📚 Tổng hợp Lý thuyết</span>
+      </button>
+      <button onclick="switchTab('exercise')" id="nav-exercise" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+        <span>🧩 Tạo Bài tập</span>
+      </button>
+      <button onclick="switchTab('testcase')" id="nav-testcase" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+        <span>⚙️ Tạo Test Case</span>
+      </button>
+      <button onclick="switchTab('analytics')" id="nav-analytics" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+        <span>📊 Phân tích Lớp học</span>
+      </button>
+    </nav>
+
+    <div class="p-3 border-t border-slate-200">
+      <button onclick="openApiModal(true)" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer">
+        <span>🔑 Quản lý API Key</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- NỘI DUNG CHÍNH -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- TAB 1: XEM & NHẬN XÉT CODE -->
+    <section id="tab-review" class="tab-content flex-1 flex flex-col overflow-hidden">
+      <!-- Header -->
+      <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Xem & Nhận xét Code Học sinh</h2>
+          <p class="text-xs text-slate-500">Đề bài được giữ cố định giúp bạn chấm liên tiếp nhiều học sinh.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="currentModelBadge" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-mono-code"></span>
+          <button onclick="nextStudent()" class="px-3.5 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-lg transition cursor-pointer">
+            ↻ Chấm HS tiếp theo (Giữ đề)
+          </button>
+        </div>
+      </header>
+
+      <!-- Workspace 2 cột -->
+      <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 p-5 overflow-y-auto">
+        
+        <!-- CỘT TRÁI: ĐỀ BÀI + CODE HỌC SINH (6 cột) -->
+        <div class="lg:col-span-6 flex flex-col gap-4">
+          
+          <!-- Khung 1: ĐỀ BÀI (STICKY) -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col">
+            <div class="flex items-center justify-between mb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-sm text-slate-800">1. Đề bài</span>
+                <span class="text-[11px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-medium">Giữ cố định</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md cursor-pointer transition font-medium">
+                  📎 Tải Ảnh / PDF / DOCX
+                  <input type="file" id="problemFileInput" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx" class="hidden" />
+                </label>
+                <button onclick="clearProblem()" class="text-xs text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-md transition cursor-pointer">Xóa đề</button>
+              </div>
+            </div>
+
+            <!-- Hiển thị file đính kèm (Ảnh / PDF) -->
+            <div id="problemAttachmentPreview" class="hidden mb-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+              <div class="flex items-center gap-2.5 overflow-hidden">
+                <img id="problemImageThumb" class="hidden w-12 h-12 object-cover rounded border border-slate-300 shrink-0" />
+                <span id="problemPdfIcon" class="hidden text-xl shrink-0">📄</span>
+                <span id="problemFileName" class="text-xs font-medium text-slate-700 truncate"></span>
+              </div>
+              <button onclick="removeProblemAttachment()" class="text-xs text-slate-400 hover:text-rose-600 px-1.5 cursor-pointer">✕</button>
+            </div>
+
+            <textarea id="problemText" rows="4" placeholder="Nhập/dán nội dung đề bài, hoặc nhấn Ctrl+V để dán trực tiếp ảnh chụp màn hình đề bài..." class="w-full text-sm p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y"></textarea>
+          </div>
+
+          <!-- Khung 2: CODE HỌC SINH -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex-1 flex flex-col">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+              <span class="font-semibold text-sm text-slate-800">2. Bài làm của học sinh</span>
+              <div class="flex items-center gap-2">
+                <select id="codeLang" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-slate-50 text-slate-700 outline-none">
+                  <option value="C++">C++</option>
+                  <option value="Python">Python</option>
+                </select>
+                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md cursor-pointer transition font-medium">
+                  📂 Chọn file .cpp / .py
+                  <input type="file" id="codeFileInput" accept=".cpp,.c,.py,.txt" class="hidden" />
+                </label>
+              </div>
+            </div>
+
+            <input type="text" id="studentName" placeholder="Tên học sinh / Lớp (không bắt buộc, VD: Nguyễn Văn A - 10A1)" class="w-full text-xs px-3 py-2 mb-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+
+            <textarea id="studentCode" rows="10" placeholder="Dán mã nguồn C++ hoặc Python của học sinh vào đây..." class="w-full flex-1 font-mono-code text-xs p-3.5 bg-slate-900 text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y leading-relaxed"></textarea>
+
+            <button id="analyzeBtn" onclick="analyzeCode()" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2.5 px-4 rounded-lg text-sm transition flex items-center justify-center gap-2 cursor-pointer">
+              <span>✨ Phân tích & Nhận xét Code</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CỘT PHẢI: KẾT QUẢ NHẬN XÉT (6 cột) -->
+        <div class="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-[400px]">
+          <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+            <span class="font-semibold text-sm text-slate-800">3. Nhận xét chuyên môn</span>
+            <button id="copyResultBtn" onclick="copyReview()" class="hidden px-3 py-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition cursor-pointer">
+              📋 Copy nhận xét
+            </button>
+          </div>
+
+          <div id="resultContainer" class="flex-1 p-5 overflow-y-auto">
+            <!-- Trạng thái trống -->
+            <div id="emptyState" class="h-full flex flex-col items-center justify-center text-center text-slate-400 py-12">
+              <div class="text-4xl mb-3">💡</div>
+              <p class="text-sm font-medium text-slate-600">Chưa có nhận xét nào</p>
+              <p class="text-xs max-w-xs mt-1">Nạp đề bài và code học sinh ở cột bên trái, sau đó bấm <strong>Phân tích & Nhận xét Code</strong>.</p>
+            </div>
+
+            <!-- Trạng thái đang tải -->
+            <div id="loadingState" class="hidden h-full flex flex-col items-center justify-center text-center py-12">
+              <div class="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
+              <p class="text-sm font-medium text-indigo-700">AI đang phân tích thuật toán & độ phức tạp...</p>
+            </div>
+
+            <!-- Nội dung nhận xét -->
+            <div id="reviewOutput" class="prose max-w-none hidden"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CÁC TRANG CHỜ (GIAI ĐOẠN SAU) -->
+    <section id="tab-placeholder" class="tab-content hidden flex-1 flex flex-col items-center justify-center p-8 text-center">
+      <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-3xl mb-4">🚧</div>
+      <h2 id="placeholderTitle" class="text-xl font-bold text-slate-800 mb-2">Chức năng đang phát triển</h2>
+      <p class="text-sm text-slate-500 max-w-md">Chức năng này sẽ được nghiên cứu và tích hợp trong giai đoạn tiếp theo. Hiện tại bạn có thể sử dụng đầy đủ tính năng <strong>Xem & Nhận xét Code</strong>.</p>
+      <button onclick="switchTab('review')" class="mt-5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition cursor-pointer">
+        Quay lại Xem & Nhận xét Code
+      </button>
+    </section>
+  </main>
+
+  <script>
+    // --- TRẠNG THÁI ỨNG DỤNG ---
+    let problemAttachment = null; // { mimeType, base64, name }
+    let lastRawMarkdown = "";
+
+    // --- KHỞI TẠO & QUẢN LÝ API KEY ---
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedKey = localStorage.getItem('gemini_api_key');
+      const savedModel = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+      document.getElementById('modelSelect').value = savedModel;
+      updateModelBadge(savedModel);
+
+      if (!savedKey) {
+        openApiModal(false);
+      }
+    });
+
+    function openApiModal(allowClose) {
+      const modal = document.getElementById('apiKeyModal');
+      const closeBtn = document.getElementById('closeModalBtn');
+      document.getElementById('apiKeyInput').value = localStorage.getItem('gemini_api_key') || '';
+      modal.classList.remove('hidden');
+      closeBtn.classList.toggle('hidden', !allowClose);
+    }
+
+    document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      const model = document.getElementById('modelSelect').value;
+      if (!key) {
+        alert('Vui lòng nhập Gemini API Key trước khi sử dụng.');
+        return;
+      }
+      localStorage.setItem('gemini_api_key', key);
+      localStorage.setItem('gemini_model', model);
+      updateModelBadge(model);
+      document.getElementById('apiKeyModal').classList.add('hidden');
+    });
+
+    document.getElementById('closeModalBtn').addEventListener('click', () => {
+      document.getElementById('apiKeyModal').classList.add('hidden');
+    });
+
+    function updateModelBadge(model) {
+      document.getElementById('currentModelBadge').textContent = model;
+    }
+
+    // --- ĐIỀU HƯỚNG TAB ---
+    const tabTitles = {
+      theory: 'Tổng hợp Lý thuyết',
+      exercise: 'Tạo Bài tập Lập trình',
+      testcase: 'Tạo Test Case Tự động',
+      analytics: 'Phân tích Lỗi sai Lớp học'
+    };
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-50', 'text-indigo-700');
+        btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+      });
+      const activeBtn = document.getElementById('nav-' + tabId);
+      activeBtn.classList.add('bg-indigo-50', 'text-indigo-700');
+      activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-100');
+
+      if (tabId === 'review') {
+        document.getElementById('tab-review').classList.remove('hidden');
+        document.getElementById('tab-placeholder').classList.add('hidden');
+      } else {
+        document.getElementById('tab-review').classList.add('hidden');
+        document.getElementById('tab-placeholder').classList.remove('hidden');
+        document.getElementById('placeholderTitle').textContent = tabTitles[tabId] + ' — Đang phát triển';
+      }
+    }
+
+    // --- XỬ LÝ FILE ĐỀ BÀI (ẢNH, PDF, DOCX, CTRL+V) ---
+    document.getElementById('problemFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      await handleProblemFile(file);
+      e.target.value = '';
+    });
+
+    // Hỗ trợ dán ảnh chụp màn hình trực tiếp bằng Ctrl+V
+    document.addEventListener('paste', async (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) await handleProblemFile(file, 'Ảnh dán từ Clipboard');
+          break;
+        }
+      }
+    });
+
+    async function handleProblemFile(file, customName) {
+      const fileName = customName || file.name;
+      if (file.name?.endsWith('.docx')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        const textArea = document.getElementById('problemText');
+        textArea.value = (textArea.value ? textArea.value + '\n\n' : '') + result.value.trim();
+        return;
+      }
+
+      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result.split(',')[1];
+          problemAttachment = { mimeType: file.type, base64, name: fileName };
+          showAttachmentPreview(file.type, reader.result, fileName);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Định dạng không hỗ trợ. Vui lòng chọn Ảnh, PDF hoặc DOCX.');
+      }
+    }
+
+    function showAttachmentPreview(mimeType, dataUrl, name) {
+      document.getElementById('problemAttachmentPreview').classList.remove('hidden');
+      document.getElementById('problemFileName').textContent = name;
+      const img = document.getElementById('problemImageThumb');
+      const pdfIcon = document.getElementById('problemPdfIcon');
+      if (mimeType.startsWith('image/')) {
+        img.src = dataUrl;
+        img.classList.remove('hidden');
+        pdfIcon.classList.add('hidden');
+      } else {
+        img.classList.add('hidden');
+        pdfIcon.classList.remove('hidden');
+      }
+    }
+
+    function removeProblemAttachment() {
+      problemAttachment = null;
+      document.getElementById('problemAttachmentPreview').classList.add('hidden');
+    }
+
+    function clearProblem() {
+      document.getElementById('problemText').value = '';
+      removeProblemAttachment();
+    }
+
+    // --- XỬ LÝ FILE CODE HỌC SINH ---
+    document.getElementById('codeFileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.name.endsWith('.py')) document.getElementById('codeLang').value = 'Python';
+      else if (file.name.endsWith('.cpp') || file.name.endsWith('.c')) document.getElementById('codeLang').value = 'C++';
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById('studentCode').value = reader.result;
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    function nextStudent() {
+      document.getElementById('studentName').value = '';
+      document.getElementById('studentCode').value = '';
+      document.getElementById('reviewOutput').classList.add('hidden');
+      document.getElementById('copyResultBtn').classList.add('hidden');
+      document.getElementById('emptyState').classList.remove('hidden');
+      lastRawMarkdown = '';
+      document.getElementById('studentName').focus();
+    }
+
+    // --- GỌI GEMINI API PHÂN TÍCH CODE ---
+    async function analyzeCode() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+      if (!apiKey) { openApiModal(false); return; }
+
+      const problemText = document.getElementById('problemText').value.trim();
+      const studentCode = document.getElementById('studentCode').value.trim();
+      const studentName = document.getElementById('studentName').value.trim();
+      const lang = document.getElementById('codeLang').value;
+
+      if (!problemText && !problemAttachment) {
+        alert('Vui lòng nhập đề bài hoặc đính kèm ảnh/PDF/DOCX đề bài.');
+        return;
+      }
+      if (!studentCode) {
+        alert('Vui lòng dán hoặc tải file code của học sinh.');
+        return;
+      }
+
+      // UI Loading
+      const btn = document.getElementById('analyzeBtn');
+      btn.disabled = true;
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('reviewOutput').classList.add('hidden');
+      document.getElementById('copyResultBtn').classList.add('hidden');
+      document.getElementById('loadingState').classList.remove('hidden');
+
+      const systemPrompt = `Bạn là giáo viên chuyên Tin học và huấn luyện viên Lập trình thi đấu (Competitive Programming).
+Nhiệm vụ: Nhận xét bài làm (${lang}) của học sinh một cách NGẮN GỌN, SẮC BÉN, ĐI THẲNG VÀO TRỌNG TÂM.
+QUY TẮC BẮT BUỘC:
+- KHÔNG chấm điểm, KHÔNG dài dòng.
+- Trình bày đúng 4 mục sau bằng Markdown:
+  ## 1. Tư duy thuật toán
+  (Kết luận ngay: Đúng hay Sai yêu cầu đề bài. Nếu sai, chỉ rõ lỗi logic và đưa ra 1 bộ test phản ví dụ ngắn gọn làm code sai.)
+  ## 2. Độ tối ưu (Thời gian & Bộ nhớ)
+  (Đánh giá độ phức tạp hiện tại O(...) so với giới hạn đề bài. Cảnh báo ngay nếu có nguy cơ TLE, MLE hoặc tràn số int/long long.)
+  ## 3. Phong cách Lập trình thi đấu (CP)
+  (Nhận xét ngắn về tốc độ nhập xuất, cách dùng STL/thư viện, độ gọn gàng của code.)
+  ## 4. Gợi ý cách viết khác & Cải thiện
+  (Đề xuất thuật toán tối ưu hơn hoặc cách viết code gọn hơn, kèm đoạn code minh họa ngắn nếu cần.)`;
+
+      const userPrompt = `${studentName ? `Học sinh: ${studentName}\n` : ''}Ngôn ngữ: ${lang}\n\n--- ĐỀ BÀI ---\n${problemText || '(Xem nội dung trong tệp đính kèm)'}\n\n--- CODE HỌC SINH ---\n\`\`\`${lang.toLowerCase()}\n${studentCode}\n\`\`\``;
+
+      const parts = [{ text: userPrompt }];
+      if (problemAttachment) {
+        parts.push({
+          inline_data: {
+            mime_type: problemAttachment.mimeType,
+            data: problemAttachment.base64
+          }
+        });
+      }
+
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts }]
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || 'Lỗi kết nối Gemini API');
+
+        const mdText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Không nhận được phản hồi từ AI.';
+        lastRawMarkdown = (studentName ? `NHẬN XÉT BÀI LÀM — ${studentName}\n\n` : '') + mdText;
+
+        const outputEl = document.getElementById('reviewOutput');
+        outputEl.innerHTML = marked.parse(mdText);
+        outputEl.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+
+        document.getElementById('loadingState').classList.add('hidden');
+        outputEl.classList.remove('hidden');
+        document.getElementById('copyResultBtn').classList.remove('hidden');
+      } catch (err) {
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('emptyState').classList.remove('hidden');
+        alert('Lỗi: ' + err.message + '\nVui lòng kiểm tra lại API Key.');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // --- SAO CHÉP NHẬN XÉT ---
+    async function copyReview() {
+      if (!lastRawMarkdown) return;
+      try {
+        await navigator.clipboard.writeText(lastRawMarkdown);
+        const btn = document.getElementById('copyResultBtn');
+        const oldText = btn.textContent;
+        btn.textContent = '✅ Đã sao chép!';
+        setTimeout(() => btn.textContent = oldText, 2000);
+      } catch {
+        alert('Không thể sao chép tự động, vui lòng bôi đen và nhấn Ctrl+C.');
+      }
+    }
+  </script>
+</body>
+</html>
