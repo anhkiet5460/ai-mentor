@@ -7,13 +7,14 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', sans-serif; }
     .font-mono-code { font-family: 'JetBrains Mono', monospace; }
-    .prose h2 { font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-top: 1.2rem; margin-bottom: 0.45rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
+    .prose h2 { font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-top: 1.15rem; margin-bottom: 0.45rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
     .prose h3 { font-size: 0.95rem; font-weight: 600; color: #334155; margin-top: 0.9rem; margin-bottom: 0.3rem; }
     .prose p { margin-bottom: 0.6rem; color: #334155; line-height: 1.6; }
     .prose ul, .prose ol { margin-left: 1.25rem; margin-bottom: 0.7rem; color: #334155; }
@@ -53,7 +54,7 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Chọn Model AI <span class="text-xs font-normal text-emerald-600">(Khuyên dùng dòng Flash cho gói Miễn phí)</span></label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Chọn Model AI <span class="text-xs font-normal text-emerald-600">(Khuyên dùng dòng Flash)</span></label>
           <select id="modelSelect" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-mono-code">
             <option value="gemini-2.5-flash">gemini-2.5-flash (Khuyên dùng - Miễn phí)</option>
             <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (Nhanh - Miễn phí)</option>
@@ -61,7 +62,6 @@
           </select>
         </div>
 
-        <!-- Trạng thái kiểm tra kết nối -->
         <div id="testStatus" class="hidden text-xs p-2.5 rounded-lg"></div>
 
         <div class="flex gap-2 pt-1">
@@ -93,8 +93,13 @@
 
     <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
       <button onclick="switchTab('review')" id="nav-review" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 transition cursor-pointer">
-        <span>📝 Xem & Nhận xét Code</span>
+        <span>📝 Nhận xét từng bài</span>
         <span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-semibold">Sẵn sàng</span>
+      </button>
+
+      <button onclick="switchTab('batch')" id="nav-batch" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+        <span>📂 Chấm hàng loạt</span>
+        <span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-semibold">Mới</span>
       </button>
 
       <div class="pt-3 pb-1 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Đang nghiên cứu</div>
@@ -113,7 +118,8 @@
       </button>
     </nav>
 
-    <div class="p-3 border-t border-slate-200">
+    <div class="p-3 border-t border-slate-200 space-y-2">
+      <div class="text-[11px] text-center text-slate-500 font-mono-code truncate" id="sidebarModelBadge"></div>
       <button onclick="openApiModal(true)" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer">
         <span>🔑 Quản lý API Key</span>
       </button>
@@ -122,18 +128,17 @@
 
   <!-- NỘI DUNG CHÍNH -->
   <main class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- ==================== TAB 1: NHẬN XÉT TỪNG BÀI ==================== -->
     <section id="tab-review" class="tab-content flex-1 flex flex-col overflow-hidden">
       <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0">
         <div>
-          <h2 class="text-base font-bold text-slate-900">Xem & Nhận xét Code Học sinh</h2>
+          <h2 class="text-base font-bold text-slate-900">Xem & Nhận xét từng bài Học sinh</h2>
           <p class="text-xs text-slate-500">Đề bài được giữ cố định giúp bạn chấm liên tiếp nhiều học sinh.</p>
         </div>
-        <div class="flex items-center gap-2">
-          <span id="currentModelBadge" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-mono-code"></span>
-          <button onclick="nextStudent()" class="px-3.5 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-lg transition cursor-pointer">
-            ↻ Chấm HS tiếp theo (Giữ đề)
-          </button>
-        </div>
+        <button onclick="nextStudent()" class="px-3.5 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-lg transition cursor-pointer">
+          ↻ Chấm HS tiếp theo (Giữ đề)
+        </button>
       </header>
 
       <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 p-5 overflow-y-auto">
@@ -163,7 +168,7 @@
               <button onclick="removeProblemAttachment()" class="text-xs text-slate-400 hover:text-rose-600 px-1.5 cursor-pointer">✕</button>
             </div>
 
-            <textarea id="problemText" rows="4" placeholder="Nhập/dán nội dung đề bài, hoặc nhấn Ctrl+V để dán trực tiếp ảnh chụp màn hình đề bài..." class="w-full text-sm p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y"></textarea>
+            <textarea id="problemText" rows="4" placeholder="Nhập/dán nội dung đề bài, hoặc nhấn Ctrl+V để dán trực tiếp ảnh chụp màn hình..." class="w-full text-sm p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y"></textarea>
           </div>
 
           <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex-1 flex flex-col">
@@ -226,25 +231,138 @@
       </div>
     </section>
 
-    <!-- CÁC TRANG CHỜ -->
+    <!-- ==================== TAB 2: CHẤM HÀNG LOẠT (THEMIS) ==================== -->
+    <section id="tab-batch" class="tab-content hidden flex-1 flex flex-col overflow-hidden">
+      <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Chấm & Nhận xét hàng loạt (Cấu trúc thư mục Themis)</h2>
+          <p class="text-xs text-slate-500">Hỗ trợ đề nhiều bài chung 1 file, quét thư mục <code class="bg-slate-100 px-1 rounded">BaiLam\TenHS\bai1.cpp</code> và xuất Excel (.xlsx).</p>
+        </div>
+        <button id="exportExcelBtn" onclick="exportBatchExcel()" disabled class="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white rounded-lg transition cursor-pointer flex items-center gap-1.5">
+          📥 Tải file Excel (.xlsx)
+        </button>
+      </header>
+
+      <div class="flex-1 flex flex-col gap-4 p-5 overflow-y-auto">
+        <!-- Hàng trên: Cấu hình đầu vào -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 shrink-0">
+          <!-- Khung 1: Đề bài (1 hoặc nhiều bài) -->
+          <div class="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-semibold text-sm text-slate-800">1. Đề thi / Danh sách bài tập</span>
+              <div class="flex items-center gap-2">
+                <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md cursor-pointer transition font-medium">
+                  📎 Tải Ảnh / PDF / DOCX
+                  <input type="file" id="batchProblemFileInput" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx" class="hidden" />
+                </label>
+                <button onclick="clearBatchProblem()" class="text-xs text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-md cursor-pointer">Xóa</button>
+              </div>
+            </div>
+
+            <div id="batchAttachmentPreview" class="hidden mb-2 p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+              <span id="batchFileName" class="text-xs font-medium text-slate-700 truncate"></span>
+              <button onclick="removeBatchAttachment()" class="text-xs text-slate-400 hover:text-rose-600 px-1.5 cursor-pointer">✕</button>
+            </div>
+
+            <textarea id="batchProblemText" rows="3" placeholder="Dán nội dung đề thi (có thể gồm nhiều bài: Bài 1, Bài 2...) hoặc tải file PDF/DOCX/Ảnh ở trên..." class="w-full text-xs p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y"></textarea>
+          </div>
+
+          <!-- Khung 2: Chọn thư mục bài làm & Điều khiển -->
+          <div class="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col justify-between gap-3">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold text-sm text-slate-800">2. Thư mục bài làm (Chuẩn Themis)</span>
+                <label class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg cursor-pointer transition font-semibold">
+                  📂 Chọn thư mục bài làm
+                  <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden" />
+                </label>
+              </div>
+              <div id="folderSummary" class="text-xs text-slate-500 bg-slate-50 border border-dashed border-slate-300 rounded-lg p-3">
+                Chưa chọn thư mục. Cấu trúc hỗ trợ: <code class="text-indigo-600">BaiLam \ TenHocSinh \ bai1.cpp, bai2.py...</code>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div class="flex items-center gap-2 text-xs text-slate-600">
+                <label for="batchDelay">Nghỉ giữa mỗi bài (giây):</label>
+                <input type="number" id="batchDelay" value="4" min="1" max="30" class="w-14 px-2 py-1 border border-slate-300 rounded text-center font-mono-code" />
+                <span class="text-[11px] text-slate-400">(Tránh quá tải Free API)</span>
+              </div>
+              <div class="flex gap-2">
+                <button id="stopBatchBtn" onclick="stopBatch()" class="hidden px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg cursor-pointer">
+                  ⏹ Dừng lại
+                </button>
+                <button id="startBatchBtn" onclick="startBatchGrading()" disabled class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white text-xs font-semibold rounded-lg transition cursor-pointer">
+                  🚀 Bắt đầu chấm hàng loạt
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thanh tiến trình -->
+        <div id="batchProgressBox" class="hidden bg-white rounded-xl border border-slate-200 p-3.5 shrink-0">
+          <div class="flex items-center justify-between text-xs mb-1.5">
+            <span id="batchProgressText" class="font-medium text-indigo-700">Đang chuẩn bị...</span>
+            <span id="batchProgressCount" class="font-mono-code text-slate-600">0 / 0</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div id="batchProgressBar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Bảng kết quả -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden min-h-[260px]">
+          <div class="px-4 py-2.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <span class="font-semibold text-xs text-slate-700 uppercase tracking-wider">Bảng tổng hợp nhận xét</span>
+            <span id="batchTableCount" class="text-xs text-slate-500">0 bài</span>
+          </div>
+          <div class="flex-1 overflow-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-slate-50 sticky top-0 border-b border-slate-200 text-xs text-slate-600">
+                <tr>
+                  <th class="py-2.5 px-3 w-12 text-center">STT</th>
+                  <th class="py-2.5 px-3 w-44">Học sinh</th>
+                  <th class="py-2.5 px-3 w-36">Tên bài (File)</th>
+                  <th class="py-2.5 px-3 w-32">Trạng thái</th>
+                  <th class="py-2.5 px-3">Nhận xét & Cần điều chỉnh (Gạch đầu dòng)</th>
+                </tr>
+              </thead>
+              <tbody id="batchResultBody" class="divide-y divide-slate-100 text-xs">
+                <tr>
+                  <td colspan="5" class="py-10 text-center text-slate-400">Chưa có dữ liệu. Hãy nạp đề bài và chọn thư mục bài làm của học sinh.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== CÁC TRANG CHỜ ==================== -->
     <section id="tab-placeholder" class="tab-content hidden flex-1 flex flex-col items-center justify-center p-8 text-center">
       <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-3xl mb-4">🚧</div>
       <h2 id="placeholderTitle" class="text-xl font-bold text-slate-800 mb-2">Chức năng đang phát triển</h2>
       <p class="text-sm text-slate-500 max-w-md">Chức năng này sẽ được nghiên cứu và tích hợp trong giai đoạn tiếp theo.</p>
       <button onclick="switchTab('review')" class="mt-5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition cursor-pointer">
-        Quay lại Xem & Nhận xét Code
+        Quay lại Nhận xét Code
       </button>
     </section>
   </main>
 
   <script>
+    // ==================== TRẠNG THÁI CHUNG ====================
     let problemAttachment = null;
     let lastRawMarkdown = "";
+
+    let batchAttachment = null;
+    let batchFiles = [];       // [{ student, fileName, lang, fileObj }]
+    let batchResults = [];     // [{ stt, student, fileName, status, feedback }]
+    let isBatchStopped = false;
 
     window.addEventListener('DOMContentLoaded', () => {
       const savedKey = localStorage.getItem('gemini_api_key');
       let savedModel = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
-      // Tự động sửa nếu đang lưu model Pro cũ bị lỗi limit: 0
       if (savedModel.includes('2.5-pro') || savedModel.includes('3.1-pro')) {
         savedModel = 'gemini-2.5-flash';
         localStorage.setItem('gemini_model', savedModel);
@@ -252,7 +370,6 @@
       ensureModelInSelect(savedModel);
       document.getElementById('modelSelect').value = savedModel;
       updateModelBadge(savedModel);
-
       if (!savedKey) openApiModal(false);
     });
 
@@ -284,10 +401,9 @@
       el.classList.remove('hidden');
     }
 
-    // TỰ ĐỘNG TẢI DANH SÁCH MODEL TỪ API KEY CỦA NGƯỜI DÙNG
     async function fetchAvailableModels() {
       const key = document.getElementById('apiKeyInput').value.trim();
-      if (!key) { showTestStatus('err', 'Vui lòng nhập API Key trước khi tải danh sách Model.'); return; }
+      if (!key) { showTestStatus('err', 'Vui lòng nhập API Key trước.'); return; }
       const btn = document.getElementById('loadModelsBtn');
       btn.disabled = true;
       showTestStatus('info', 'Đang tải danh sách Model khả dụng...');
@@ -295,14 +411,10 @@
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error?.message || 'Không thể lấy danh sách model.');
-
         const validModels = (data.models || [])
           .filter(m => m.supportedGenerationMethods?.includes('generateContent') && m.name.includes('gemini'))
           .map(m => m.name.replace('models/', ''))
           .sort((a, b) => (b.includes('flash') ? 1 : 0) - (a.includes('flash') ? 1 : 0));
-
-        if (!validModels.length) throw new Error('Không tìm thấy model Gemini nào.');
-
         const select = document.getElementById('modelSelect');
         select.innerHTML = '';
         validModels.forEach(m => {
@@ -319,7 +431,6 @@
       }
     }
 
-    // KIỂM TRA KẾT NỐI TRỰC TIẾP KEY + MODEL
     async function testConnection() {
       const key = document.getElementById('apiKeyInput').value.trim();
       const model = document.getElementById('modelSelect').value;
@@ -333,10 +444,10 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error?.message || 'Lỗi kết nối.');
-        showTestStatus('ok', `✅ Kết nối thành công với ${model}! Bạn có thể bấm Lưu & Sử dụng.`);
+        showTestStatus('ok', `✅ Kết nối thành công với ${model}!`);
       } catch (e) {
         if (e.message.includes('limit: 0') || e.message.includes('quota')) {
-          showTestStatus('err', `Model ${model} không hỗ trợ gói Miễn phí (limit: 0). Vui lòng đổi sang model dòng "flash" (VD: gemini-2.5-flash).`);
+          showTestStatus('err', `Model ${model} không hỗ trợ gói Miễn phí (limit: 0). Vui lòng đổi sang dòng "flash".`);
         } else {
           showTestStatus('err', 'Lỗi: ' + e.message);
         }
@@ -358,9 +469,10 @@
     });
 
     function updateModelBadge(model) {
-      document.getElementById('currentModelBadge').textContent = model;
+      document.getElementById('sidebarModelBadge').textContent = 'Model: ' + model;
     }
 
+    // ==================== ĐIỀU HƯỚNG TAB ====================
     const tabTitles = {
       theory: 'Tổng hợp Lý thuyết',
       exercise: 'Tạo Bài tập Lập trình',
@@ -377,41 +489,42 @@
       activeBtn.classList.add('bg-indigo-50', 'text-indigo-700');
       activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-100');
 
-      if (tabId === 'review') {
-        document.getElementById('tab-review').classList.remove('hidden');
-        document.getElementById('tab-placeholder').classList.add('hidden');
-      } else {
-        document.getElementById('tab-review').classList.add('hidden');
+      document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+      if (tabId === 'review') document.getElementById('tab-review').classList.remove('hidden');
+      else if (tabId === 'batch') document.getElementById('tab-batch').classList.remove('hidden');
+      else {
         document.getElementById('tab-placeholder').classList.remove('hidden');
         document.getElementById('placeholderTitle').textContent = tabTitles[tabId] + ' — Đang phát triển';
       }
     }
 
+    // ==================== TAB 1: NHẬN XÉT TỪNG BÀI ====================
     document.getElementById('problemFileInput').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      await handleProblemFile(file);
+      await handleProblemFile(file, false);
       e.target.value = '';
     });
 
     document.addEventListener('paste', async (e) => {
+      if (document.getElementById('tab-review').classList.contains('hidden')) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of items) {
         if (item.type.startsWith('image/')) {
           const file = item.getAsFile();
-          if (file) await handleProblemFile(file, 'Ảnh dán từ Clipboard');
+          if (file) await handleProblemFile(file, false, 'Ảnh dán từ Clipboard');
           break;
         }
       }
     });
 
-    async function handleProblemFile(file, customName) {
+    async function handleProblemFile(file, isBatch, customName) {
       const fileName = customName || file.name;
       if (file.name?.endsWith('.docx')) {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
-        const textArea = document.getElementById('problemText');
+        const textArea = document.getElementById(isBatch ? 'batchProblemText' : 'problemText');
         textArea.value = (textArea.value ? textArea.value + '\n\n' : '') + result.value.trim();
         return;
       }
@@ -420,8 +533,23 @@
         const reader = new FileReader();
         reader.onload = () => {
           const base64 = reader.result.split(',')[1];
-          problemAttachment = { mimeType: file.type, base64, name: fileName };
-          showAttachmentPreview(file.type, reader.result, fileName);
+          const att = { mimeType: file.type, base64, name: fileName };
+          if (isBatch) {
+            batchAttachment = att;
+            document.getElementById('batchAttachmentPreview').classList.remove('hidden');
+            document.getElementById('batchFileName').textContent = (file.type === 'application/pdf' ? '📄 ' : '🖼️ ') + fileName;
+          } else {
+            problemAttachment = att;
+            document.getElementById('problemAttachmentPreview').classList.remove('hidden');
+            document.getElementById('problemFileName').textContent = fileName;
+            const img = document.getElementById('problemImageThumb');
+            const pdfIcon = document.getElementById('problemPdfIcon');
+            if (file.type.startsWith('image/')) {
+              img.src = reader.result; img.classList.remove('hidden'); pdfIcon.classList.add('hidden');
+            } else {
+              img.classList.add('hidden'); pdfIcon.classList.remove('hidden');
+            }
+          }
         };
         reader.readAsDataURL(file);
       } else {
@@ -429,26 +557,10 @@
       }
     }
 
-    function showAttachmentPreview(mimeType, dataUrl, name) {
-      document.getElementById('problemAttachmentPreview').classList.remove('hidden');
-      document.getElementById('problemFileName').textContent = name;
-      const img = document.getElementById('problemImageThumb');
-      const pdfIcon = document.getElementById('problemPdfIcon');
-      if (mimeType.startsWith('image/')) {
-        img.src = dataUrl;
-        img.classList.remove('hidden');
-        pdfIcon.classList.add('hidden');
-      } else {
-        img.classList.add('hidden');
-        pdfIcon.classList.remove('hidden');
-      }
-    }
-
     function removeProblemAttachment() {
       problemAttachment = null;
       document.getElementById('problemAttachmentPreview').classList.add('hidden');
     }
-
     function clearProblem() {
       document.getElementById('problemText').value = '';
       removeProblemAttachment();
@@ -459,7 +571,6 @@
       if (!file) return;
       if (file.name.endsWith('.py')) document.getElementById('codeLang').value = 'Python';
       else if (file.name.endsWith('.cpp') || file.name.endsWith('.c')) document.getElementById('codeLang').value = 'C++';
-
       const reader = new FileReader();
       reader.onload = () => { document.getElementById('studentCode').value = reader.result; };
       reader.readAsText(file);
@@ -487,7 +598,7 @@
       const studentName = document.getElementById('studentName').value.trim();
       const lang = document.getElementById('codeLang').value;
 
-      if (!problemText && !problemAttachment) { alert('Vui lòng nhập đề bài hoặc đính kèm ảnh/PDF/DOCX đề bài.'); return; }
+      if (!problemText && !problemAttachment) { alert('Vui lòng nhập đề bài hoặc đính kèm file đề bài.'); return; }
       if (!studentCode) { alert('Vui lòng dán hoặc tải file code của học sinh.'); return; }
 
       const btn = document.getElementById('analyzeBtn');
@@ -502,15 +613,17 @@
 Nhiệm vụ: Nhận xét bài làm (${lang}) của học sinh một cách NGẮN GỌN, SẮC BÉN, ĐI THẲNG VÀO TRỌNG TÂM.
 QUY TẮC BẮT BUỘC:
 - KHÔNG chấm điểm, KHÔNG dài dòng.
-- Trình bày đúng 4 mục sau bằng Markdown:
+- Trình bày đúng 5 mục sau bằng Markdown:
   ## 1. Tư duy thuật toán
   (Kết luận ngay: Đúng hay Sai yêu cầu đề bài. Nếu sai, chỉ rõ lỗi logic và đưa ra 1 bộ test phản ví dụ ngắn gọn làm code sai.)
   ## 2. Độ tối ưu (Thời gian & Bộ nhớ)
   (Đánh giá độ phức tạp hiện tại O(...) so với giới hạn đề bài. Cảnh báo ngay nếu có nguy cơ TLE, MLE hoặc tràn số int/long long.)
   ## 3. Phong cách Lập trình thi đấu (CP)
-  (Nhận xét ngắn về tốc độ nhập xuất, cách dùng STL/thư viện, độ gọn gàng của code.)
+  (Nhận xét ngắn về tốc độ nhập xuất, cách dùng STL/thư viện, độ gọn gàng.)
   ## 4. Gợi ý cách viết khác & Cải thiện
-  (Đề xuất thuật toán tối ưu hơn hoặc cách viết code gọn hơn, kèm đoạn code minh họa ngắn nếu cần.)`;
+  (Đề xuất thuật toán tối ưu hơn hoặc cách viết code gọn hơn, kèm đoạn code minh họa ngắn nếu cần.)
+  ## 5. Kết luận & Việc cần sửa ngay
+  (Tóm gọn trong tối đa 2-3 gạch đầu dòng ngắn gọn, trực diện: học sinh cần chỉnh sửa chính xác chỗ nào để bài làm hoàn chỉnh/tối ưu nhất.)`;
 
       const userPrompt = `${studentName ? `Học sinh: ${studentName}\n` : ''}Ngôn ngữ: ${lang}\n\n--- ĐỀ BÀI ---\n${problemText || '(Xem nội dung trong tệp đính kèm)'}\n\n--- CODE HỌC SINH ---\n\`\`\`${lang.toLowerCase()}\n${studentCode}\n\`\`\``;
 
@@ -528,11 +641,10 @@ QUY TẮC BẮT BUỘC:
             contents: [{ role: 'user', parts }]
           })
         });
-
         const data = await res.json();
         if (!res.ok) throw new Error(data.error?.message || 'Lỗi kết nối Gemini API');
 
-        const mdText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Không nhận được phản hồi từ AI.';
+        const mdText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Không nhận được phản hồi.';
         lastRawMarkdown = (studentName ? `NHẬN XÉT BÀI LÀM — ${studentName}\n\n` : '') + mdText;
 
         const outputEl = document.getElementById('reviewOutput');
@@ -545,12 +657,9 @@ QUY TẮC BẮT BUỘC:
       } catch (err) {
         document.getElementById('loadingState').classList.add('hidden');
         const errBox = document.getElementById('errorState');
-        const errMsg = document.getElementById('errorMessage');
-        if (err.message.includes('limit: 0') || err.message.includes('quota')) {
-          errMsg.textContent = `Model "${model}" đã hết hạn mức hoặc không hỗ trợ gói Miễn phí (limit: 0). Vui lòng bấm nút bên dưới và đổi sang model dòng Flash (VD: gemini-2.5-flash).`;
-        } else {
-          errMsg.textContent = err.message;
-        }
+        document.getElementById('errorMessage').textContent = (err.message.includes('limit: 0') || err.message.includes('quota'))
+          ? `Model "${model}" hết hạn mức hoặc không hỗ trợ Free Tier. Hãy đổi sang dòng Flash.`
+          : err.message;
         errBox.classList.remove('hidden');
       } finally {
         btn.disabled = false;
@@ -562,12 +671,216 @@ QUY TẮC BẮT BUỘC:
       try {
         await navigator.clipboard.writeText(lastRawMarkdown);
         const btn = document.getElementById('copyResultBtn');
-        const oldText = btn.textContent;
+        const old = btn.textContent;
         btn.textContent = '✅ Đã sao chép!';
-        setTimeout(() => btn.textContent = oldText, 2000);
+        setTimeout(() => btn.textContent = old, 2000);
       } catch {
         alert('Không thể sao chép tự động, vui lòng bôi đen và nhấn Ctrl+C.');
       }
+    }
+
+    // ==================== TAB 2: CHẤM HÀNG LOẠT (THEMIS) ====================
+    document.getElementById('batchProblemFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      await handleProblemFile(file, true);
+      e.target.value = '';
+    });
+
+    function removeBatchAttachment() {
+      batchAttachment = null;
+      document.getElementById('batchAttachmentPreview').classList.add('hidden');
+    }
+    function clearBatchProblem() {
+      document.getElementById('batchProblemText').value = '';
+      removeBatchAttachment();
+    }
+
+    // Quét thư mục chuẩn Themis
+    document.getElementById('folderInput').addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      const validExts = ['.cpp', '.c', '.py'];
+      batchFiles = [];
+
+      files.forEach(file => {
+        const lower = file.name.toLowerCase();
+        if (!validExts.some(ext => lower.endsWith(ext))) return;
+
+        const parts = file.webkitRelativePath.split('/');
+        // Cấu trúc Themis: RootFolder / TenHocSinh / bai1.cpp
+        let student = 'Không rõ';
+        if (parts.length >= 3) student = parts[parts.length - 2];
+        else if (parts.length === 2) student = parts[0];
+
+        const lang = lower.endsWith('.py') ? 'Python' : 'C++';
+        batchFiles.push({ student, fileName: file.name, lang, fileObj: file });
+      });
+
+      // Sắp xếp theo tên học sinh -> tên bài
+      batchFiles.sort((a, b) => a.student.localeCompare(b.student, 'vi') || a.fileName.localeCompare(b.fileName, 'vi'));
+
+      const uniqueStudents = new Set(batchFiles.map(f => f.student)).size;
+      const summaryEl = document.getElementById('folderSummary');
+      if (batchFiles.length === 0) {
+        summaryEl.innerHTML = '<span class="text-rose-600 font-medium">Không tìm thấy tệp .cpp / .c / .py nào trong thư mục đã chọn.</span>';
+        document.getElementById('startBatchBtn').disabled = true;
+      } else {
+        summaryEl.innerHTML = `<span class="text-emerald-700 font-semibold">✅ Đã quét được ${batchFiles.length} bài làm của ${uniqueStudents} học sinh.</span> Sẵn sàng chấm hàng loạt.`;
+        document.getElementById('startBatchBtn').disabled = false;
+      }
+      e.target.value = '';
+    });
+
+    function stopBatch() {
+      isBatchStopped = true;
+      document.getElementById('stopBatchBtn').disabled = true;
+      document.getElementById('batchProgressText').textContent = 'Đang dừng lại sau bài hiện tại...';
+    }
+
+    async function startBatchGrading() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+      if (!apiKey) { openApiModal(false); return; }
+
+      const problemText = document.getElementById('batchProblemText').value.trim();
+      if (!problemText && !batchAttachment) {
+        alert('Vui lòng nhập đề thi hoặc đính kèm file đề thi (Ảnh/PDF/DOCX) trước khi chấm.');
+        return;
+      }
+      if (batchFiles.length === 0) return;
+
+      isBatchStopped = false;
+      batchResults = [];
+      const delaySec = Math.max(1, parseInt(document.getElementById('batchDelay').value) || 4);
+
+      document.getElementById('startBatchBtn').classList.add('hidden');
+      document.getElementById('stopBatchBtn').classList.remove('hidden');
+      document.getElementById('stopBatchBtn').disabled = false;
+      document.getElementById('exportExcelBtn').disabled = true;
+      document.getElementById('batchProgressBox').classList.remove('hidden');
+      document.getElementById('batchResultBody').innerHTML = '';
+
+      const systemPrompt = `Bạn là giáo viên chuyên Tin học chấm bài lập trình thi đấu hàng loạt.
+Đề thi có thể chứa 1 hoặc NHIỀU bài. Hãy tự đối chiếu TÊN FILE bài làm của học sinh với đúng bài tương ứng trong đề thi.
+QUY TẮC BẮT BUỘC:
+- KHÔNG chấm điểm, KHÔNG viết code dài dòng, KHÔNG dùng ký tự markdown rườm rà (như ** hay ##).
+- Trả về đúng định dạng 2 phần ngăn cách bởi dòng "---":
+  Dòng 1: Đánh giá nhanh (chỉ chọn 1 trong 4 nhãn: Đúng & Tối ưu | Đúng - Chưa tối ưu | Sai logic | Lỗi cú pháp / Không rõ đề)
+  ---
+  Các dòng tiếp theo: Tối đa 3-4 gạch đầu dòng (- ) cực kỳ súc tích, ngắn gọn để xuất vào ô Excel:
+  - Thuật toán & kết quả (nêu test phản ví dụ ngắn nếu sai)
+  - Độ phức tạp / Tràn số / Tối ưu CP (nếu có)
+  - Cần điều chỉnh: (chỉ rõ việc học sinh cần sửa ngay)`;
+
+      for (let i = 0; i < batchFiles.length; i++) {
+        if (isBatchStopped) break;
+        const item = batchFiles[i];
+
+        document.getElementById('batchProgressText').textContent = `Đang chấm: ${item.student} — ${item.fileName}...`;
+        document.getElementById('batchProgressCount').textContent = `${i + 1} / ${batchFiles.length}`;
+        document.getElementById('batchProgressBar').style.width = `${Math.round(((i + 1) / batchFiles.length) * 100)}%`;
+
+        let status = 'Lỗi hệ thống';
+        let feedback = '';
+
+        try {
+          const codeContent = await item.fileObj.text();
+          const userPrompt = `Học sinh: ${item.student}\nTên file bài làm: ${item.fileName} (${item.lang})\n\n--- ĐỀ THI ---\n${problemText || '(Xem nội dung trong tệp đính kèm)'}\n\n--- CODE HỌC SINH ---\n${codeContent}`;
+          const parts = [{ text: userPrompt }];
+          if (batchAttachment) {
+            parts.push({ inline_data: { mime_type: batchAttachment.mimeType, data: batchAttachment.base64 } });
+          }
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ role: 'user', parts }]
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error?.message || 'Lỗi API');
+
+          const rawText = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+          const splitIdx = rawText.indexOf('---');
+          if (splitIdx !== -1) {
+            status = rawText.slice(0, splitIdx).trim();
+            feedback = rawText.slice(splitIdx + 3).trim();
+          } else {
+            status = 'Đã nhận xét';
+            feedback = rawText;
+          }
+        } catch (err) {
+          status = 'Lỗi API';
+          feedback = '- ' + err.message;
+        }
+
+        const rowObj = { stt: i + 1, student: item.student, fileName: item.fileName, status, feedback };
+        batchResults.push(rowObj);
+        appendBatchRow(rowObj);
+        document.getElementById('batchTableCount').textContent = `${batchResults.length} bài`;
+
+        // Nghỉ giữa các bài để tránh Rate Limit Free Tier
+        if (i < batchFiles.length - 1 && !isBatchStopped) {
+          await new Promise(r => setTimeout(r, delaySec * 1000));
+        }
+      }
+
+      document.getElementById('batchProgressText').textContent = isBatchStopped
+        ? `Đã dừng ở bài ${batchResults.length} / ${batchFiles.length}.`
+        : `✅ Hoàn thành chấm ${batchResults.length} bài!`;
+      document.getElementById('startBatchBtn').classList.remove('hidden');
+      document.getElementById('stopBatchBtn').classList.add('hidden');
+      if (batchResults.length > 0) document.getElementById('exportExcelBtn').disabled = false;
+    }
+
+    function appendBatchRow(row) {
+      const tbody = document.getElementById('batchResultBody');
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50 align-top';
+
+      let badgeClass = 'bg-slate-100 text-slate-700';
+      if (row.status.includes('Tối ưu') && row.status.includes('Đúng')) badgeClass = 'bg-emerald-100 text-emerald-700';
+      else if (row.status.includes('Chưa tối ưu')) badgeClass = 'bg-amber-100 text-amber-700';
+      else if (row.status.includes('Sai') || row.status.includes('Lỗi')) badgeClass = 'bg-rose-100 text-rose-700';
+
+      const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      tr.innerHTML = `
+        <td class="py-2.5 px-3 text-center text-slate-500 font-mono-code">${row.stt}</td>
+        <td class="py-2.5 px-3 font-semibold text-slate-800">${escapeHtml(row.student)}</td>
+        <td class="py-2.5 px-3 font-mono-code text-indigo-700">${escapeHtml(row.fileName)}</td>
+        <td class="py-2.5 px-3"><span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}">${escapeHtml(row.status)}</span></td>
+        <td class="py-2.5 px-3 text-slate-700 whitespace-pre-line leading-relaxed">${escapeHtml(row.feedback)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    // Xuất file Excel (.xlsx)
+    function exportBatchExcel() {
+      if (batchResults.length === 0) return;
+      const excelData = batchResults.map(r => ({
+        'STT': r.stt,
+        'Học sinh': r.student,
+        'Tên bài (File)': r.fileName,
+        'Đánh giá nhanh': r.status,
+        'Nhận xét & Cần điều chỉnh': r.feedback
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      ws['!cols'] = [
+        { wch: 6 },
+        { wch: 24 },
+        { wch: 18 },
+        { wch: 22 },
+        { wch: 75 }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'NhanXetCode');
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `NhanXet_BaiLapTrinh_${today}.xlsx`);
     }
   </script>
 </body>
