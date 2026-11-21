@@ -94,12 +94,15 @@
     <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
       <button onclick="switchTab('review')" id="nav-review" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 transition cursor-pointer">
         <span>📝 Nhận xét từng bài</span>
-        <span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-semibold">Sẵn sàng</span>
       </button>
 
       <button onclick="switchTab('batch')" id="nav-batch" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">
         <span>📂 Chấm hàng loạt</span>
-        <span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-semibold">Mới</span>
+      </button>
+
+      <button onclick="switchTab('history')" id="nav-history" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+        <span>🗂️ Lịch sử chấm bài</span>
+        <span id="historyCountBadge" class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-semibold">0</span>
       </button>
 
       <div class="pt-3 pb-1 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Đang nghiên cứu</div>
@@ -134,7 +137,7 @@
       <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0">
         <div>
           <h2 class="text-base font-bold text-slate-900">Xem & Nhận xét từng bài Học sinh</h2>
-          <p class="text-xs text-slate-500">Đề bài được giữ cố định giúp bạn chấm liên tiếp nhiều học sinh.</p>
+          <p class="text-xs text-slate-500">Đề bài được giữ cố định, kết quả tự động lưu vào Lịch sử chấm bài.</p>
         </div>
         <button onclick="nextStudent()" class="px-3.5 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-lg transition cursor-pointer">
           ↻ Chấm HS tiếp theo (Giữ đề)
@@ -142,7 +145,6 @@
       </header>
 
       <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 p-5 overflow-y-auto">
-        <!-- CỘT TRÁI -->
         <div class="lg:col-span-6 flex flex-col gap-4">
           <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col">
             <div class="flex items-center justify-between mb-2.5">
@@ -186,7 +188,7 @@
               </div>
             </div>
 
-            <input type="text" id="studentName" placeholder="Tên học sinh / Lớp (không bắt buộc, VD: Nguyễn Văn A - 10A1)" class="w-full text-xs px-3 py-2 mb-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <input type="text" id="studentName" placeholder="Tên học sinh / Lớp (VD: Nguyễn Văn A - 10A1)" class="w-full text-xs px-3 py-2 mb-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
 
             <textarea id="studentCode" rows="10" placeholder="Dán mã nguồn C++ hoặc Python của học sinh vào đây..." class="w-full flex-1 font-mono-code text-xs p-3.5 bg-slate-900 text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y leading-relaxed"></textarea>
 
@@ -196,7 +198,6 @@
           </div>
         </div>
 
-        <!-- CỘT PHẢI -->
         <div class="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-[400px]">
           <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
             <span class="font-semibold text-sm text-slate-800">3. Nhận xét chuyên môn</span>
@@ -236,17 +237,15 @@
       <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0">
         <div>
           <h2 class="text-base font-bold text-slate-900">Chấm & Nhận xét hàng loạt (Cấu trúc thư mục Themis)</h2>
-          <p class="text-xs text-slate-500">Hỗ trợ đề nhiều bài chung 1 file, quét thư mục <code class="bg-slate-100 px-1 rounded">BaiLam\TenHS\bai1.cpp</code> và xuất Excel (.xlsx).</p>
+          <p class="text-xs text-slate-500">Quét thư mục <code class="bg-slate-100 px-1 rounded">BaiLam\TenHS\bai1.cpp</code>, hỗ trợ nhận xét lại từng bài và xuất Excel (.xlsx).</p>
         </div>
-        <button id="exportExcelBtn" onclick="exportBatchExcel()" disabled class="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white rounded-lg transition cursor-pointer flex items-center gap-1.5">
+        <button id="exportExcelBtn" onclick="exportBatchExcel(batchResults)" disabled class="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white rounded-lg transition cursor-pointer flex items-center gap-1.5">
           📥 Tải file Excel (.xlsx)
         </button>
       </header>
 
       <div class="flex-1 flex flex-col gap-4 p-5 overflow-y-auto">
-        <!-- Hàng trên: Cấu hình đầu vào -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 shrink-0">
-          <!-- Khung 1: Đề bài (1 hoặc nhiều bài) -->
           <div class="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col">
             <div class="flex items-center justify-between mb-2">
               <span class="font-semibold text-sm text-slate-800">1. Đề thi / Danh sách bài tập</span>
@@ -267,7 +266,6 @@
             <textarea id="batchProblemText" rows="3" placeholder="Dán nội dung đề thi (có thể gồm nhiều bài: Bài 1, Bài 2...) hoặc tải file PDF/DOCX/Ảnh ở trên..." class="w-full text-xs p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y"></textarea>
           </div>
 
-          <!-- Khung 2: Chọn thư mục bài làm & Điều khiển -->
           <div class="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col justify-between gap-3">
             <div>
               <div class="flex items-center justify-between mb-2">
@@ -286,7 +284,6 @@
               <div class="flex items-center gap-2 text-xs text-slate-600">
                 <label for="batchDelay">Nghỉ giữa mỗi bài (giây):</label>
                 <input type="number" id="batchDelay" value="4" min="1" max="30" class="w-14 px-2 py-1 border border-slate-300 rounded text-center font-mono-code" />
-                <span class="text-[11px] text-slate-400">(Tránh quá tải Free API)</span>
               </div>
               <div class="flex gap-2">
                 <button id="stopBatchBtn" onclick="stopBatch()" class="hidden px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg cursor-pointer">
@@ -300,7 +297,6 @@
           </div>
         </div>
 
-        <!-- Thanh tiến trình -->
         <div id="batchProgressBox" class="hidden bg-white rounded-xl border border-slate-200 p-3.5 shrink-0">
           <div class="flex items-center justify-between text-xs mb-1.5">
             <span id="batchProgressText" class="font-medium text-indigo-700">Đang chuẩn bị...</span>
@@ -311,7 +307,6 @@
           </div>
         </div>
 
-        <!-- Bảng kết quả -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden min-h-[260px]">
           <div class="px-4 py-2.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
             <span class="font-semibold text-xs text-slate-700 uppercase tracking-wider">Bảng tổng hợp nhận xét</span>
@@ -322,18 +317,68 @@
               <thead class="bg-slate-50 sticky top-0 border-b border-slate-200 text-xs text-slate-600">
                 <tr>
                   <th class="py-2.5 px-3 w-12 text-center">STT</th>
-                  <th class="py-2.5 px-3 w-44">Học sinh</th>
-                  <th class="py-2.5 px-3 w-36">Tên bài (File)</th>
+                  <th class="py-2.5 px-3 w-40">Học sinh</th>
+                  <th class="py-2.5 px-3 w-32">Tên bài (File)</th>
                   <th class="py-2.5 px-3 w-32">Trạng thái</th>
-                  <th class="py-2.5 px-3">Nhận xét & Cần điều chỉnh (Gạch đầu dòng)</th>
+                  <th class="py-2.5 px-3">Nhận xét & Cần điều chỉnh</th>
+                  <th class="py-2.5 px-3 w-28 text-center">Thao tác</th>
                 </tr>
               </thead>
               <tbody id="batchResultBody" class="divide-y divide-slate-100 text-xs">
                 <tr>
-                  <td colspan="5" class="py-10 text-center text-slate-400">Chưa có dữ liệu. Hãy nạp đề bài và chọn thư mục bài làm của học sinh.</td>
+                  <td colspan="6" class="py-10 text-center text-slate-400">Chưa có dữ liệu. Hãy nạp đề bài và chọn thư mục bài làm của học sinh.</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: LỊCH SỬ CHẤM BÀI ==================== -->
+    <section id="tab-history" class="tab-content hidden flex-1 flex flex-col overflow-hidden">
+      <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Lịch sử chấm bài & Tra cứu</h2>
+          <p class="text-xs text-slate-500">Dữ liệu tự động lưu trên trình duyệt. Hãy sao lưu file JSON định kỳ để lưu trữ lâu dài.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="exportHistoryJSON()" class="px-3 py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 rounded-lg transition cursor-pointer">
+            💾 Sao lưu (.json)
+          </button>
+          <label class="px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition cursor-pointer">
+            📂 Khôi phục (.json)
+            <input type="file" id="importHistoryInput" accept=".json" class="hidden" />
+          </label>
+          <button onclick="clearAllHistory()" class="px-3 py-1.5 text-xs font-medium bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition cursor-pointer">
+            🗑️ Xóa tất cả
+          </button>
+        </div>
+      </header>
+
+      <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 p-5 overflow-hidden">
+        <div class="lg:col-span-4 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+          <div class="p-3 border-b border-slate-200 space-y-2 bg-slate-50/70">
+            <input type="text" id="historySearch" oninput="renderHistoryList()" placeholder="🔍 Tìm theo tên HS, tên bài, đề..." class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white" />
+            <div class="flex gap-1.5">
+              <button onclick="setHistoryFilter('all')" id="filter-all" class="hist-filter flex-1 py-1 text-xs font-medium rounded-md bg-indigo-600 text-white cursor-pointer">Tất cả</button>
+              <button onclick="setHistoryFilter('single')" id="filter-single" class="hist-filter flex-1 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer">Từng bài</button>
+              <button onclick="setHistoryFilter('batch')" id="filter-batch" class="hist-filter flex-1 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer">Hàng loạt</button>
+            </div>
+          </div>
+          <div id="historyListContainer" class="flex-1 overflow-y-auto divide-y divide-slate-100"></div>
+        </div>
+
+        <div class="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+          <div id="historyDetailHeader" class="px-4 py-3 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+            <span class="font-semibold text-sm text-slate-800">Chi tiết bài đã nhận xét</span>
+            <div id="historyDetailActions" class="flex items-center gap-2"></div>
+          </div>
+          <div id="historyDetailBody" class="flex-1 p-5 overflow-y-auto">
+            <div class="h-full flex flex-col items-center justify-center text-center text-slate-400 py-12">
+              <div class="text-4xl mb-3">🗂️</div>
+              <p class="text-sm font-medium text-slate-600">Chọn một bản ghi ở danh sách bên trái để xem chi tiết</p>
+            </div>
           </div>
         </div>
       </div>
@@ -352,13 +397,19 @@
 
   <script>
     // ==================== TRẠNG THÁI CHUNG ====================
+    const HISTORY_KEY = 'cpp_mentor_history_v1';
     let problemAttachment = null;
     let lastRawMarkdown = "";
 
     let batchAttachment = null;
-    let batchFiles = [];       // [{ student, fileName, lang, fileObj }]
-    let batchResults = [];     // [{ stt, student, fileName, status, feedback }]
+    let batchFiles = [];
+    let batchResults = [];
+    let currentBatchHistoryId = null;
     let isBatchStopped = false;
+
+    let historyData = [];
+    let historyFilter = 'all';
+    let selectedHistoryId = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       const savedKey = localStorage.getItem('gemini_api_key');
@@ -370,15 +421,241 @@
       ensureModelInSelect(savedModel);
       document.getElementById('modelSelect').value = savedModel;
       updateModelBadge(savedModel);
+      loadHistory();
       if (!savedKey) openApiModal(false);
     });
 
+    function escapeHtml(str = '') {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ==================== QUẢN LÝ LỊCH SỬ (LOCALSTORAGE) ====================
+    function loadHistory() {
+      try {
+        historyData = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      } catch {
+        historyData = [];
+      }
+      updateHistoryBadge();
+      renderHistoryList();
+    }
+
+    function persistHistory() {
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(historyData));
+      } catch (e) {
+        alert('Bộ nhớ trình duyệt đã đầy. Hãy bấm "Sao lưu (.json)" rồi xóa bớt lịch sử cũ.');
+      }
+      updateHistoryBadge();
+      renderHistoryList();
+    }
+
+    function updateHistoryBadge() {
+      document.getElementById('historyCountBadge').textContent = historyData.length;
+    }
+
+    function addHistoryRecord(record) {
+      const id = 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      historyData.unshift({
+        id,
+        timestamp: new Date().toLocaleString('vi-VN'),
+        ...record
+      });
+      persistHistory();
+      return id;
+    }
+
+    function setHistoryFilter(type) {
+      historyFilter = type;
+      document.querySelectorAll('.hist-filter').forEach(b => {
+        b.classList.remove('bg-indigo-600', 'text-white');
+        b.classList.add('bg-slate-100', 'text-slate-600');
+      });
+      const active = document.getElementById('filter-' + type);
+      active.classList.add('bg-indigo-600', 'text-white');
+      active.classList.remove('bg-slate-100', 'text-slate-600');
+      renderHistoryList();
+    }
+
+    function renderHistoryList() {
+      const container = document.getElementById('historyListContainer');
+      const keyword = (document.getElementById('historySearch')?.value || '').trim().toLowerCase();
+
+      const filtered = historyData.filter(item => {
+        if (historyFilter !== 'all' && item.type !== historyFilter) return false;
+        if (!keyword) return true;
+        const haystack = [
+          item.problemTitle,
+          item.studentName,
+          item.timestamp,
+          ...(item.results ? item.results.map(r => r.student + ' ' + r.fileName) : [])
+        ].join(' ').toLowerCase();
+        return haystack.includes(keyword);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-xs text-slate-400">Không có bản ghi lịch sử nào.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const isSelected = item.id === selectedHistoryId;
+        const isBatch = item.type === 'batch';
+        const badge = isBatch
+          ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-semibold">Hàng loạt (${item.totalFiles} bài)</span>`
+          : `<span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-semibold">Từng bài (${escapeHtml(item.lang)})</span>`;
+        const title = isBatch ? (item.problemTitle || 'Đợt chấm Themis') : (item.studentName || 'Học sinh ẩn danh');
+        const sub = isBatch ? item.timestamp : `${item.problemTitle || 'Đề bài'} • ${item.timestamp}`;
+
+        return `
+          <div onclick="viewHistoryDetail('${item.id}')" class="p-3.5 cursor-pointer transition ${isSelected ? 'bg-indigo-50/80 border-l-4 border-indigo-600' : 'hover:bg-slate-50'}">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              ${badge}
+              <button onclick="event.stopPropagation(); deleteHistoryRecord('${item.id}')" class="text-slate-400 hover:text-rose-600 text-xs px-1" title="Xóa bản ghi">✕</button>
+            </div>
+            <div class="font-semibold text-xs text-slate-800 truncate">${escapeHtml(title)}</div>
+            <div class="text-[11px] text-slate-500 truncate mt-0.5">${escapeHtml(sub)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function viewHistoryDetail(id) {
+      const item = historyData.find(r => r.id === id);
+      if (!item) return;
+      selectedHistoryId = id;
+      renderHistoryList();
+
+      const actionsEl = document.getElementById('historyDetailActions');
+      const bodyEl = document.getElementById('historyDetailBody');
+
+      if (item.type === 'single') {
+        actionsEl.innerHTML = `
+          <button onclick="copyTextDirectly('${item.id}')" class="px-3 py-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg cursor-pointer">📋 Copy nhận xét</button>
+        `;
+        bodyEl.innerHTML = `
+          <div class="mb-4 pb-3 border-b border-slate-200 flex flex-wrap justify-between gap-2 text-xs text-slate-500">
+            <div><strong class="text-slate-800">Học sinh:</strong> ${escapeHtml(item.studentName || 'Không rõ')} (${escapeHtml(item.lang)})</div>
+            <div><strong class="text-slate-800">Thời gian:</strong> ${escapeHtml(item.timestamp)}</div>
+          </div>
+          <div class="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+            <div class="font-semibold text-slate-700 mb-1">Đề bài:</div>
+            <div class="text-slate-600 whitespace-pre-line">${escapeHtml(item.problemTitle)}</div>
+          </div>
+          <details class="mb-4 bg-slate-900 rounded-lg overflow-hidden">
+            <summary class="px-3.5 py-2 text-xs font-medium text-slate-300 cursor-pointer hover:bg-slate-800">💻 Xem mã nguồn học sinh đã nộp</summary>
+            <pre class="p-3.5 text-xs text-slate-100 font-mono-code overflow-x-auto border-t border-slate-700"><code>${escapeHtml(item.code)}</code></pre>
+          </details>
+          <div id="histSingleMd" class="prose max-w-none"></div>
+        `;
+        const mdEl = document.getElementById('histSingleMd');
+        mdEl.innerHTML = marked.parse(item.reviewMarkdown || '');
+        mdEl.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+      } else {
+        actionsEl.innerHTML = `
+          <button onclick="exportHistoryBatchExcel('${item.id}')" class="px-3 py-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg cursor-pointer">📥 Tải lại Excel (.xlsx)</button>
+        `;
+        const rowsHtml = (item.results || []).map(r => `
+          <tr class="hover:bg-slate-50 align-top">
+            <td class="py-2 px-2.5 text-center text-slate-500 font-mono-code">${r.stt}</td>
+            <td class="py-2 px-2.5 font-semibold text-slate-800">${escapeHtml(r.student)}</td>
+            <td class="py-2 px-2.5 font-mono-code text-indigo-700">${escapeHtml(r.fileName)}</td>
+            <td class="py-2 px-2.5 font-medium text-slate-700">${escapeHtml(r.status)}</td>
+            <td class="py-2 px-2.5 text-slate-700 whitespace-pre-line leading-relaxed">${escapeHtml(r.feedback)}</td>
+          </tr>
+        `).join('');
+
+        bodyEl.innerHTML = `
+          <div class="mb-4 pb-3 border-b border-slate-200 flex flex-wrap justify-between gap-2 text-xs text-slate-500">
+            <div><strong class="text-slate-800">Đợt chấm:</strong> ${escapeHtml(item.problemTitle)} (${item.totalFiles} bài)</div>
+            <div><strong class="text-slate-800">Thời gian:</strong> ${escapeHtml(item.timestamp)}</div>
+          </div>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600">
+                <tr>
+                  <th class="py-2 px-2.5 w-10 text-center">STT</th>
+                  <th class="py-2 px-2.5 w-36">Học sinh</th>
+                  <th class="py-2 px-2.5 w-32">Tên bài</th>
+                  <th class="py-2 px-2.5 w-28">Trạng thái</th>
+                  <th class="py-2 px-2.5">Nhận xét & Cần điều chỉnh</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">${rowsHtml}</tbody>
+            </table>
+          </div>
+        `;
+      }
+    }
+
+    async function copyTextDirectly(id) {
+      const item = historyData.find(r => r.id === id);
+      if (!item) return;
+      const text = (item.studentName ? `NHẬN XÉT BÀI LÀM — ${item.studentName}\n\n` : '') + item.reviewMarkdown;
+      await navigator.clipboard.writeText(text);
+      alert('✅ Đã sao chép nhận xét vào bộ nhớ tạm!');
+    }
+
+    function exportHistoryBatchExcel(id) {
+      const item = historyData.find(r => r.id === id);
+      if (item && item.results) exportBatchExcel(item.results);
+    }
+
+    function deleteHistoryRecord(id) {
+      if (!confirm('Xóa bản ghi này khỏi lịch sử?')) return;
+      historyData = historyData.filter(r => r.id !== id);
+      if (selectedHistoryId === id) {
+        selectedHistoryId = null;
+        document.getElementById('historyDetailActions').innerHTML = '';
+        document.getElementById('historyDetailBody').innerHTML = `<div class="h-full flex items-center justify-center text-xs text-slate-400">Đã xóa bản ghi.</div>`;
+      }
+      persistHistory();
+    }
+
+    function clearAllHistory() {
+      if (historyData.length === 0) return;
+      if (!confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ lịch sử chấm bài không?')) return;
+      historyData = [];
+      selectedHistoryId = null;
+      document.getElementById('historyDetailActions').innerHTML = '';
+      document.getElementById('historyDetailBody').innerHTML = `<div class="h-full flex items-center justify-center text-xs text-slate-400">Lịch sử đang trống.</div>`;
+      persistHistory();
+    }
+
+    function exportHistoryJSON() {
+      if (historyData.length === 0) { alert('Chưa có dữ liệu lịch sử để sao lưu.'); return; }
+      const blob = new Blob([JSON.stringify(historyData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `LichSu_CppAIMentor_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('importHistoryInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const imported = JSON.parse(await file.text());
+        if (!Array.isArray(imported)) throw new Error('File không đúng định dạng lịch sử.');
+        const existingIds = new Set(historyData.map(x => x.id));
+        const newItems = imported.filter(x => x.id && !existingIds.has(x.id));
+        historyData = [...newItems, ...historyData];
+        persistHistory();
+        alert(`✅ Đã khôi phục thêm ${newItems.length} bản ghi lịch sử!`);
+      } catch (err) {
+        alert('Lỗi khôi phục: ' + err.message);
+      }
+      e.target.value = '';
+    });
+
+    // ==================== API KEY & MODEL ====================
     function ensureModelInSelect(modelId) {
       const select = document.getElementById('modelSelect');
       if (![...select.options].some(o => o.value === modelId)) {
         const opt = document.createElement('option');
-        opt.value = modelId;
-        opt.textContent = modelId;
+        opt.value = modelId; opt.textContent = modelId;
         select.prepend(opt);
       }
     }
@@ -446,11 +723,9 @@
         if (!res.ok) throw new Error(data.error?.message || 'Lỗi kết nối.');
         showTestStatus('ok', `✅ Kết nối thành công với ${model}!`);
       } catch (e) {
-        if (e.message.includes('limit: 0') || e.message.includes('quota')) {
-          showTestStatus('err', `Model ${model} không hỗ trợ gói Miễn phí (limit: 0). Vui lòng đổi sang dòng "flash".`);
-        } else {
-          showTestStatus('err', 'Lỗi: ' + e.message);
-        }
+        showTestStatus('err', (e.message.includes('limit: 0') || e.message.includes('quota'))
+          ? `Model ${model} không hỗ trợ gói Miễn phí (limit: 0). Vui lòng đổi sang dòng "flash".`
+          : 'Lỗi: ' + e.message);
       }
     }
 
@@ -492,7 +767,10 @@
       document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
       if (tabId === 'review') document.getElementById('tab-review').classList.remove('hidden');
       else if (tabId === 'batch') document.getElementById('tab-batch').classList.remove('hidden');
-      else {
+      else if (tabId === 'history') {
+        document.getElementById('tab-history').classList.remove('hidden');
+        renderHistoryList();
+      } else {
         document.getElementById('tab-placeholder').classList.remove('hidden');
         document.getElementById('placeholderTitle').textContent = tabTitles[tabId] + ' — Đang phát triển';
       }
@@ -654,6 +932,16 @@ QUY TẮC BẮT BUỘC:
         document.getElementById('loadingState').classList.add('hidden');
         outputEl.classList.remove('hidden');
         document.getElementById('copyResultBtn').classList.remove('hidden');
+
+        const probSummary = problemText ? problemText.split('\n')[0].slice(0, 90) : (problemAttachment?.name || 'Đề bài đính kèm');
+        addHistoryRecord({
+          type: 'single',
+          problemTitle: probSummary,
+          studentName: studentName || 'Học sinh ẩn danh',
+          lang,
+          code: studentCode,
+          reviewMarkdown: mdText
+        });
       } catch (err) {
         document.getElementById('loadingState').classList.add('hidden');
         const errBox = document.getElementById('errorState');
@@ -696,7 +984,6 @@ QUY TẮC BẮT BUỘC:
       removeBatchAttachment();
     }
 
-    // Quét thư mục chuẩn Themis
     document.getElementById('folderInput').addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       const validExts = ['.cpp', '.c', '.py'];
@@ -705,9 +992,7 @@ QUY TẮC BẮT BUỘC:
       files.forEach(file => {
         const lower = file.name.toLowerCase();
         if (!validExts.some(ext => lower.endsWith(ext))) return;
-
         const parts = file.webkitRelativePath.split('/');
-        // Cấu trúc Themis: RootFolder / TenHocSinh / bai1.cpp
         let student = 'Không rõ';
         if (parts.length >= 3) student = parts[parts.length - 2];
         else if (parts.length === 2) student = parts[0];
@@ -716,7 +1001,6 @@ QUY TẮC BẮT BUỘC:
         batchFiles.push({ student, fileName: file.name, lang, fileObj: file });
       });
 
-      // Sắp xếp theo tên học sinh -> tên bài
       batchFiles.sort((a, b) => a.student.localeCompare(b.student, 'vi') || a.fileName.localeCompare(b.fileName, 'vi'));
 
       const uniqueStudents = new Set(batchFiles.map(f => f.student)).size;
@@ -737,30 +1021,7 @@ QUY TẮC BẮT BUỘC:
       document.getElementById('batchProgressText').textContent = 'Đang dừng lại sau bài hiện tại...';
     }
 
-    async function startBatchGrading() {
-      const apiKey = localStorage.getItem('gemini_api_key');
-      const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
-      if (!apiKey) { openApiModal(false); return; }
-
-      const problemText = document.getElementById('batchProblemText').value.trim();
-      if (!problemText && !batchAttachment) {
-        alert('Vui lòng nhập đề thi hoặc đính kèm file đề thi (Ảnh/PDF/DOCX) trước khi chấm.');
-        return;
-      }
-      if (batchFiles.length === 0) return;
-
-      isBatchStopped = false;
-      batchResults = [];
-      const delaySec = Math.max(1, parseInt(document.getElementById('batchDelay').value) || 4);
-
-      document.getElementById('startBatchBtn').classList.add('hidden');
-      document.getElementById('stopBatchBtn').classList.remove('hidden');
-      document.getElementById('stopBatchBtn').disabled = false;
-      document.getElementById('exportExcelBtn').disabled = true;
-      document.getElementById('batchProgressBox').classList.remove('hidden');
-      document.getElementById('batchResultBody').innerHTML = '';
-
-      const systemPrompt = `Bạn là giáo viên chuyên Tin học chấm bài lập trình thi đấu hàng loạt.
+    const BATCH_SYSTEM_PROMPT = `Bạn là giáo viên chuyên Tin học chấm bài lập trình thi đấu hàng loạt.
 Đề thi có thể chứa 1 hoặc NHIỀU bài. Hãy tự đối chiếu TÊN FILE bài làm của học sinh với đúng bài tương ứng trong đề thi.
 QUY TẮC BẮT BUỘC:
 - KHÔNG chấm điểm, KHÔNG viết code dài dòng, KHÔNG dùng ký tự markdown rườm rà (như ** hay ##).
@@ -772,6 +1033,69 @@ QUY TẮC BẮT BUỘC:
   - Độ phức tạp / Tràn số / Tối ưu CP (nếu có)
   - Cần điều chỉnh: (chỉ rõ việc học sinh cần sửa ngay)`;
 
+    // Hàm gọi AI chấm 1 bài trong danh sách hàng loạt (dùng chung cho chấm mới & nhận xét lại)
+    async function gradeSingleBatchItem(item, problemText, attachment, apiKey, model) {
+      let status = 'Lỗi hệ thống';
+      let feedback = '';
+      try {
+        const codeContent = await item.fileObj.text();
+        const userPrompt = `Học sinh: ${item.student}\nTên file bài làm: ${item.fileName} (${item.lang})\n\n--- ĐỀ THI ---\n${problemText || '(Xem nội dung trong tệp đính kèm)'}\n\n--- CODE HỌC SINH ---\n${codeContent}`;
+        const parts = [{ text: userPrompt }];
+        if (attachment) {
+          parts.push({ inline_data: { mime_type: attachment.mimeType, data: attachment.base64 } });
+        }
+
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: BATCH_SYSTEM_PROMPT }] },
+            contents: [{ role: 'user', parts }]
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || 'Lỗi API');
+
+        const rawText = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+        const splitIdx = rawText.indexOf('---');
+        if (splitIdx !== -1) {
+          status = rawText.slice(0, splitIdx).trim();
+          feedback = rawText.slice(splitIdx + 3).trim();
+        } else {
+          status = 'Đã nhận xét';
+          feedback = rawText;
+        }
+      } catch (err) {
+        status = 'Lỗi API';
+        feedback = '- ' + err.message;
+      }
+      return { status, feedback };
+    }
+
+    async function startBatchGrading() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+      if (!apiKey) { openApiModal(false); return; }
+
+      const problemText = document.getElementById('batchProblemText').value.trim();
+      if (!problemText && !batchAttachment) {
+        alert('Vui lòng nhập đề thi hoặc đính kèm file đề thi trước khi chấm.');
+        return;
+      }
+      if (batchFiles.length === 0) return;
+
+      isBatchStopped = false;
+      batchResults = [];
+      currentBatchHistoryId = null;
+      const delaySec = Math.max(1, parseInt(document.getElementById('batchDelay').value) || 4);
+
+      document.getElementById('startBatchBtn').classList.add('hidden');
+      document.getElementById('stopBatchBtn').classList.remove('hidden');
+      document.getElementById('stopBatchBtn').disabled = false;
+      document.getElementById('exportExcelBtn').disabled = true;
+      document.getElementById('batchProgressBox').classList.remove('hidden');
+      document.getElementById('batchResultBody').innerHTML = '';
+
       for (let i = 0; i < batchFiles.length; i++) {
         if (isBatchStopped) break;
         const item = batchFiles[i];
@@ -780,48 +1104,13 @@ QUY TẮC BẮT BUỘC:
         document.getElementById('batchProgressCount').textContent = `${i + 1} / ${batchFiles.length}`;
         document.getElementById('batchProgressBar').style.width = `${Math.round(((i + 1) / batchFiles.length) * 100)}%`;
 
-        let status = 'Lỗi hệ thống';
-        let feedback = '';
-
-        try {
-          const codeContent = await item.fileObj.text();
-          const userPrompt = `Học sinh: ${item.student}\nTên file bài làm: ${item.fileName} (${item.lang})\n\n--- ĐỀ THI ---\n${problemText || '(Xem nội dung trong tệp đính kèm)'}\n\n--- CODE HỌC SINH ---\n${codeContent}`;
-          const parts = [{ text: userPrompt }];
-          if (batchAttachment) {
-            parts.push({ inline_data: { mime_type: batchAttachment.mimeType, data: batchAttachment.base64 } });
-          }
-
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: systemPrompt }] },
-              contents: [{ role: 'user', parts }]
-            })
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error?.message || 'Lỗi API');
-
-          const rawText = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-          const splitIdx = rawText.indexOf('---');
-          if (splitIdx !== -1) {
-            status = rawText.slice(0, splitIdx).trim();
-            feedback = rawText.slice(splitIdx + 3).trim();
-          } else {
-            status = 'Đã nhận xét';
-            feedback = rawText;
-          }
-        } catch (err) {
-          status = 'Lỗi API';
-          feedback = '- ' + err.message;
-        }
+        const { status, feedback } = await gradeSingleBatchItem(item, problemText, batchAttachment, apiKey, model);
 
         const rowObj = { stt: i + 1, student: item.student, fileName: item.fileName, status, feedback };
         batchResults.push(rowObj);
-        appendBatchRow(rowObj);
+        appendBatchRow(rowObj, i);
         document.getElementById('batchTableCount').textContent = `${batchResults.length} bài`;
 
-        // Nghỉ giữa các bài để tránh Rate Limit Free Tier
         if (i < batchFiles.length - 1 && !isBatchStopped) {
           await new Promise(r => setTimeout(r, delaySec * 1000));
         }
@@ -832,35 +1121,86 @@ QUY TẮC BẮT BUỘC:
         : `✅ Hoàn thành chấm ${batchResults.length} bài!`;
       document.getElementById('startBatchBtn').classList.remove('hidden');
       document.getElementById('stopBatchBtn').classList.add('hidden');
-      if (batchResults.length > 0) document.getElementById('exportExcelBtn').disabled = false;
+
+      if (batchResults.length > 0) {
+        document.getElementById('exportExcelBtn').disabled = false;
+        const probSummary = problemText ? problemText.split('\n')[0].slice(0, 80) : (batchAttachment?.name || 'Đợt chấm Themis');
+        currentBatchHistoryId = addHistoryRecord({
+          type: 'batch',
+          problemTitle: probSummary,
+          totalFiles: batchResults.length,
+          results: [...batchResults]
+        });
+      }
     }
 
-    function appendBatchRow(row) {
-      const tbody = document.getElementById('batchResultBody');
-      const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-50 align-top';
-
+    function getBatchRowHtml(row, index, isRegrading = false) {
       let badgeClass = 'bg-slate-100 text-slate-700';
-      if (row.status.includes('Tối ưu') && row.status.includes('Đúng')) badgeClass = 'bg-emerald-100 text-emerald-700';
+      if (isRegrading) badgeClass = 'bg-indigo-100 text-indigo-700';
+      else if (row.status.includes('Tối ưu') && row.status.includes('Đúng')) badgeClass = 'bg-emerald-100 text-emerald-700';
       else if (row.status.includes('Chưa tối ưu')) badgeClass = 'bg-amber-100 text-amber-700';
       else if (row.status.includes('Sai') || row.status.includes('Lỗi')) badgeClass = 'bg-rose-100 text-rose-700';
 
-      const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-      tr.innerHTML = `
+      return `
         <td class="py-2.5 px-3 text-center text-slate-500 font-mono-code">${row.stt}</td>
         <td class="py-2.5 px-3 font-semibold text-slate-800">${escapeHtml(row.student)}</td>
         <td class="py-2.5 px-3 font-mono-code text-indigo-700">${escapeHtml(row.fileName)}</td>
-        <td class="py-2.5 px-3"><span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}">${escapeHtml(row.status)}</span></td>
-        <td class="py-2.5 px-3 text-slate-700 whitespace-pre-line leading-relaxed">${escapeHtml(row.feedback)}</td>
+        <td class="py-2.5 px-3"><span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}">${isRegrading ? '⏳ Đang chấm lại...' : escapeHtml(row.status)}</span></td>
+        <td class="py-2.5 px-3 text-slate-700 whitespace-pre-line leading-relaxed">${isRegrading ? '<span class="text-slate-400 italic">AI đang phân tích lại bài làm này...</span>' : escapeHtml(row.feedback)}</td>
+        <td class="py-2.5 px-3 text-center">
+          <button onclick="regradeBatchItem(${index})" ${isRegrading ? 'disabled' : ''} class="px-2.5 py-1 text-[11px] font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 border border-indigo-200 rounded-md transition cursor-pointer whitespace-nowrap">
+            ↻ Nhận xét lại
+          </button>
+        </td>
       `;
+    }
+
+    function appendBatchRow(row, index) {
+      const tbody = document.getElementById('batchResultBody');
+      const tr = document.createElement('tr');
+      tr.id = `batch-row-${index}`;
+      tr.className = 'hover:bg-slate-50 align-top';
+      tr.innerHTML = getBatchRowHtml(row, index, false);
       tbody.appendChild(tr);
     }
 
-    // Xuất file Excel (.xlsx)
-    function exportBatchExcel() {
-      if (batchResults.length === 0) return;
-      const excelData = batchResults.map(r => ({
+    // NHẬN XÉT LẠI TỪNG BÀI KHI NGƯỜI DÙNG YÊU CẦU
+    async function regradeBatchItem(index) {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const model = localStorage.getItem('gemini_model') || 'gemini-2.5-flash';
+      if (!apiKey) { openApiModal(false); return; }
+
+      const item = batchFiles[index];
+      const existingRow = batchResults[index];
+      if (!item || !existingRow) return;
+
+      const problemText = document.getElementById('batchProblemText').value.trim();
+      if (!problemText && !batchAttachment) {
+        alert('Vui lòng giữ nguyên hoặc nhập lại đề thi để nhận xét lại.');
+        return;
+      }
+
+      const tr = document.getElementById(`batch-row-${index}`);
+      if (tr) tr.innerHTML = getBatchRowHtml(existingRow, index, true);
+
+      const { status, feedback } = await gradeSingleBatchItem(item, problemText, batchAttachment, apiKey, model);
+
+      batchResults[index] = { ...existingRow, status, feedback };
+      if (tr) tr.innerHTML = getBatchRowHtml(batchResults[index], index, false);
+
+      // Đồng bộ kết quả mới vào Lịch sử chấm bài
+      if (currentBatchHistoryId) {
+        const histItem = historyData.find(h => h.id === currentBatchHistoryId);
+        if (histItem) {
+          histItem.results = [...batchResults];
+          persistHistory();
+        }
+      }
+    }
+
+    function exportBatchExcel(resultsArray) {
+      if (!resultsArray || resultsArray.length === 0) return;
+      const excelData = resultsArray.map(r => ({
         'STT': r.stt,
         'Học sinh': r.student,
         'Tên bài (File)': r.fileName,
@@ -869,18 +1209,10 @@ QUY TẮC BẮT BUỘC:
       }));
 
       const ws = XLSX.utils.json_to_sheet(excelData);
-      ws['!cols'] = [
-        { wch: 6 },
-        { wch: 24 },
-        { wch: 18 },
-        { wch: 22 },
-        { wch: 75 }
-      ];
-
+      ws['!cols'] = [{ wch: 6 }, { wch: 24 }, { wch: 18 }, { wch: 22 }, { wch: 75 }];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'NhanXetCode');
-      const today = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `NhanXet_BaiLapTrinh_${today}.xlsx`);
+      XLSX.writeFile(wb, `NhanXet_BaiLapTrinh_${new Date().toISOString().slice(0, 10)}.xlsx`);
     }
   </script>
 </body>
